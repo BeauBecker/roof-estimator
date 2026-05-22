@@ -15,6 +15,14 @@ uploaded_file = st.file_uploader("Upload GAF PDF report", type="pdf")
 
 with st.expander("Optional add-on work and costs", expanded=True):
     st.markdown("**Task-based pricing options**")
+    waste_percent = st.number_input(
+        "Waste percentage",
+        min_value=0.0,
+        value=20.0,
+        step=0.1,
+        format="%.1f",
+        help="Override the report waste percentage used to calculate total squares for materials.",
+    )
     skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00 per skylight")
     skylight_count = st.number_input(
         "Skylight quantity",
@@ -126,15 +134,6 @@ with st.expander("Optional add-on work and costs", expanded=True):
         format="%.2f",
         disabled=not permit_fees_enabled,
     ) if permit_fees_enabled else 0.0
-
-    waste_percent = st.number_input(
-        "Waste percentage",
-        min_value=0.0,
-        value=20.0,
-        step=0.1,
-        format="%.1f",
-        help="Override the report waste percentage used to calculate total squares for materials.",
-    )
 
 skylight_count = skylight_count if skylight_replacement else 0
 skylight_cost = skylight_count * 160.00
