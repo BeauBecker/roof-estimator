@@ -127,13 +127,13 @@ with st.expander("Optional add-on work and costs", expanded=True):
         disabled=not permit_fees_enabled,
     ) if permit_fees_enabled else 0.0
 
-    shingle_waste_factor = st.number_input(
-        "Shingle waste factor",
-        min_value=1.0,
-        value=3.0,
+    waste_percent = st.number_input(
+        "Waste percentage",
+        min_value=0.0,
+        value=20.0,
         step=0.1,
         format="%.1f",
-        help="Bundles per waste square used for shingle quantity calculation.",
+        help="Override the report waste percentage used to calculate total squares for materials.",
     )
 
 skylight_count = skylight_count if skylight_replacement else 0
@@ -230,14 +230,25 @@ def extract_metrics(p7: str) -> dict[str, float]:
         "Ridges": get_p7_val("Ridges", p7),
         "Rakes": get_p7_val("Rakes", p7),
         "Valleys": get_p7_val("Valleys", p7),
+        "RoofSq": 0.0,
     }
 
-    waste_match = re.search(r"Squares\s+[\d\.]+\s+[\d\.]+\s+[\d\.]+\s+[\d\.]+\s+[\d\.]+\s+([\d\.]+)", p7)
-    metrics["Waste"] = float(waste_match.group(1)) if waste_match else 0.0
+    squares_line = re.search(r"Squares\s+([\d\.]+(?:\s+[\d\.]+)+)", p7)
+    if squares_line:
+        values = [float(v) for v in re.findall(r"[\d\.]+", squares_line.group(1))]
+        if values:
+            metrics["RoofSq"] = values[0]
+        if len(values) >= 1:
+            metrics["Waste"] = values[-1]
+        else:
+            metrics["Waste"] = 0.0
+    else:
+        metrics["Waste"] = 0.0
+
     return metrics
 
 
-def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, shingle_waste_factor: float, tax_multiplier: float, extra_cost_total: float) -> dict[str, dict[str, str]]:
+def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, tax_multiplier: float, extra_cost_total: float) -> dict[str, dict[str, str]]:
     mats = {
         "HDZ": {"shingle": 41.33, "iw": 89.88, "start": 56.70, "cap": 61.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
         "UHDZ": {"shingle": 46.33, "iw": 89.88, "start": 56.70, "cap": 77.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
@@ -247,7 +258,7 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
     result = {}
 
     for tier, d in mats.items():
-        shingle_bundles = math.ceil(waste_sq * shingle_waste_factor)
+        shingle_bundles = math.ceil(waste_sq * 3)
         s_base = shingle_bundles * d["shingle"]
         i_base = math.ceil((eaves + valleys) / 66) * d["iw"]
         st_base = math.ceil((eaves + rakes) / 120) * d["start"]
@@ -294,7 +305,7 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         for rate, name in [(105, "1L Walk"), (125, "1L Unwalk"), (125, "2L Walk"), (140, "2L Unwalk")]:
             tear_off_sq = waste_sq * 2 if "2L" in name else waste_sq
             dump_cost = 286.00 + (tear_off_sq * 15.33)
-            p_cost = (waste_sq * rate) + 1890 + s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + dump_cost + gp_m + extra_cost_total
+            p_cost = (waste_sq * rate) + s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + dump_cost + gp_m + extra_cost_total
             for m in [0.30, 0.33, 0.35, 0.37, 0.40, 0.45]:
                 total = p_cost / (1 - m)
                 st_str += f"{name:<12} | {m * 100:>7.0f}% | ${total:>10,.0f} | ${p_cost:>10,.0f} | ${dump_cost:>10,.0f} | ${total - p_cost:>10,.0f} | ${total / waste_sq:>10,.0f}\n"
@@ -323,6 +334,7 @@ if uploaded_file is not None:
                 p1, p7 = parse_report(tmp_file_path)
                 metrics = extract_metrics(p7)
                 property_address = get_property_address(p1)
+                waste_sq = metrics["RoofSq"] * (1 + waste_percent / 100.0) if metrics["RoofSq"] > 0 else metrics["Waste"]
 
                 state_match = re.search(r",\s*(PA|MD|NJ)\s+\d{5}", p1, re.IGNORECASE)
                 tax_multiplier = 1 + TAX_RATE if bool(state_match) else 1.0
@@ -332,8 +344,8 @@ if uploaded_file is not None:
 
                 st.subheader("Property Summary")
                 st.write(f"**Property Address:** {property_address}")
-                st.write(f"**Waste Squares:** {metrics['Waste']:.2f}")
-                st.write(f"**Shingle waste factor:** {shingle_waste_factor:.1f}")
+                st.write(f"**Waste Squares:** {waste_sq:.2f}")
+                st.write(f"**Waste percentage:** {waste_percent:.1f}%")
                 st.write(f"**Tax Applied:** {'Yes (6%)' if tax_multiplier > 1 else 'No'}")
                 st.write(f"**Geometry:** Eaves: {metrics['Eaves']} | Hips: {metrics['Hips']} | Ridges: {metrics['Ridges']} | Rakes: {metrics['Rakes']} | Valleys: {metrics['Valleys']}")
                 st.write("---")
@@ -371,14 +383,14 @@ if uploaded_file is not None:
                 st.write(f"**Total Add-on Cost:** ${extra_cost_total:.2f}")
                 st.write("---")
 
+                waste_sq = metrics["RoofSq"] * (1 + waste_percent / 100.0) if metrics["RoofSq"] > 0 else metrics["Waste"]
                 estimates = build_tables(
-                    waste_sq=metrics["Waste"],
+                    waste_sq=waste_sq,
                     eaves=metrics["Eaves"],
                     hips=metrics["Hips"],
                     ridges=metrics["Ridges"],
                     rakes=metrics["Rakes"],
                     valleys=metrics["Valleys"],
-                    shingle_waste_factor=shingle_waste_factor,
                     tax_multiplier=tax_multiplier,
                     extra_cost_total=extra_cost_total,
                 )
