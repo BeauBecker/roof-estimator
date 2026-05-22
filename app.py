@@ -15,7 +15,10 @@ uploaded_file = st.file_uploader("Upload GAF PDF report", type="pdf")
 
 with st.expander("Optional add-on work and costs", expanded=True):
     st.markdown("**Task-based pricing options**")
-    skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00 per section")
+    skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00 per skylight")
+    skylight_additional_2 = st.checkbox("Add second skylight", disabled=not skylight_replacement)
+    skylight_additional_3 = st.checkbox("Add third skylight", disabled=not skylight_replacement)
+    skylight_additional_4 = st.checkbox("Add fourth skylight", disabled=not skylight_replacement)
     step_flasher = st.checkbox("Replace Step Flashing — Labor $60.00 per section")
     step_flashing_sections = st.number_input(
         "Step flashing sections",
@@ -103,7 +106,8 @@ with st.expander("Optional add-on work and costs", expanded=True):
         disabled=not extra_other_enabled,
     ) if extra_other_enabled else 0.0
 
-skylight_cost = 160.00 if skylight_replacement else 0.0
+skylight_count = 1 + int(skylight_additional_2) + int(skylight_additional_3) + int(skylight_additional_4) if skylight_replacement else 0
+skylight_cost = skylight_count * 160.00
 step_flasher_cost = step_flashing_sections * 60.00 if step_flasher else 0.0
 plywood_labor_cost = plywood_sheets * 20.00 if plywood_replacement else 0.0
 plywood_material_cost = plywood_sheets * 12.50 if plywood_replacement else 0.0
@@ -262,7 +266,7 @@ if uploaded_file is not None:
                 st.write(f"**Geometry:** Eaves: {metrics['Eaves']} | Hips: {metrics['Hips']} | Ridges: {metrics['Ridges']} | Rakes: {metrics['Rakes']} | Valleys: {metrics['Valleys']}")
                 st.write("---")
                 st.write("**Task Add-on Costs**")
-                st.write(f"Skylight Replacement: ${skylight_cost:.2f}")
+                st.write(f"Skylight Replacement: {skylight_count} skylight(s) — ${skylight_cost:.2f}")
                 st.write(f"Replace Step Flashing: ${step_flasher_cost:.2f}")
                 st.write(f"Plywood Replacement Labor: ${plywood_labor_cost:.2f}")
                 st.write(f"Plywood Replacement Material: ${plywood_material_cost:.2f}")
