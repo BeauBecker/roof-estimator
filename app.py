@@ -4,6 +4,7 @@ import re
 import math
 import tempfile
 import os
+import pandas as pd
 
 st.set_page_config(page_title="Roof Estimator Pro", layout="wide")
 st.title("Roof Estimator Pro")
@@ -247,7 +248,7 @@ def extract_metrics(p7: str) -> dict[str, float]:
     return metrics
 
 
-def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, tax_multiplier: float, extra_cost_total: float) -> dict[str, dict[str, str]]:
+def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, tax_multiplier: float, extra_cost_total: float, extra_material_cost: float, extra_labor_cost: float, extra_other_cost: float, permit_fees_cost: float) -> dict[str, dict[str, str]]:
     mats = {
         "HDZ": {"shingle": 41.33, "iw": 89.88, "start": 56.70, "cap": 61.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
         "UHDZ": {"shingle": 46.33, "iw": 89.88, "start": 56.70, "cap": 77.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
@@ -299,21 +300,37 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         if gp_m > 0:
             mt += f"{'Golden Pledge':<15} | {waste_sq:.0f} sq | $9.00 | ${gp_m:<10,.0f} | $0\n"
 
-        st_str = f"{'Scenario':<12} | {'Margin %':<8} | {'Total Price':<12} | {'Prod Cost':<10} | {'Dumpster $':<10} | {'Profit $':<10} | {'Price/Sq':<10}\n"
+        st_str = f"{ 'Scenario':<12 } | {'Margin %':<8} | {'Total Price':<12} | {'Prod Cost':<10} | {'Dumpster $':<10} | {'Material $':<12} | {'Profit $':<10} | {'Price/Sq':<10}\n"
         st_str += "-" * 115 + "\n"
+        comp_frames = []
         for rate, name in [(105, "1L Walk"), (125, "1L Unwalk"), (125, "2L Walk"), (140, "2L Unwalk")]:
             tear_off_sq = waste_sq * 2 if "2L" in name else waste_sq
             dump_cost = 286.00 + (tear_off_sq * 15.33)
-            p_cost = (waste_sq * rate) + s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + dump_cost + gp_m + extra_cost_total
+            # separate production (labor), material, dumpster and extras
+            production_labor = (waste_sq * rate) + extra_labor_cost
+            material_total = s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + gp_m + extra_material_cost
+            other_extras = extra_other_cost + permit_fees_cost
+            p_cost = production_labor + dump_cost + material_total + other_extras
+            # Build a short dataframe for a simple component chart
+            comp_df = pd.DataFrame(
+                {
+                    "Production Labour": [production_labor],
+                    "Dumpster": [dump_cost],
+                    "Materials": [material_total],
+                },
+                index=[name],
+            )
+            comp_frames.append(comp_df)
             for m in [0.30, 0.33, 0.35, 0.37, 0.40, 0.45]:
                 total = p_cost / (1 - m)
-                st_str += f"{name:<12} | {m * 100:>7.0f}% | ${total:>10,.0f} | ${p_cost:>10,.0f} | ${dump_cost:>10,.0f} | ${total - p_cost:>10,.0f} | ${total / waste_sq:>10,.0f}\n"
+                st_str += f"{name:<12} | {m * 100:>7.0f}% | ${total:>10,.0f} | ${production_labor:>10,.0f} | ${dump_cost:>10,.0f} | ${material_total:>12,.0f} | ${total - p_cost:>10,.0f} | ${total / waste_sq:>10,.0f}\n"
             st_str += "-" * 115 + "\n"
-
+        comp_all = pd.concat(comp_frames) if comp_frames else pd.DataFrame()
         result[tier] = {
             "material_table": mt,
             "scenario_table": st_str,
             "tax_amount": total_tax_amount,
+            "component_df": comp_all,
         }
 
     return result
