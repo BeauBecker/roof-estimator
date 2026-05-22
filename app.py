@@ -121,7 +121,7 @@ if uploaded_file is not None:
                 for rate, name in [(105, "1L Walk"), (125, "1L Unwalk"), (125, "2L Walk"), (140, "2L Unwalk")]:
                     tear_off_sq = waste_sq * 2 if "2L" in name else waste_sq
                     dump_cost = 286.00 + (tear_off_sq * 15.33)
-                    p_cost = (waste_sq * rate) + 1890 + s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + dump_cost + gp_m
+                    p_cost = (waste_sq * rate) + s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + dump_cost + gp_m
                     for m in [0.30, 0.33, 0.35, 0.37, 0.40, 0.45]:
                         total = p_cost / (1-m)
                         st_str += f"{name:<12} | {m*100:>7.0f}% | ${total:>10,.0f} | ${p_cost:>10,.0f} | ${dump_cost:>10,.0f} | ${total-p_cost:>10,.0f} | ${total/waste_sq:>10,.0f}\n"
