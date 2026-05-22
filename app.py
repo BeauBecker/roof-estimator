@@ -15,7 +15,7 @@ uploaded_file = st.file_uploader("Upload GAF PDF report", type="pdf")
 
 with st.expander("Optional add-on work and costs", expanded=True):
     st.markdown("**Task-based pricing options**")
-    skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00")
+    skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00 per section")
     step_flasher = st.checkbox("Replace Step Flashing — Labor $60.00 per section")
     step_flashing_sections = st.number_input(
         "Step flashing sections",
