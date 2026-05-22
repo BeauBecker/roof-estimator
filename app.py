@@ -248,7 +248,7 @@ def extract_metrics(p7: str) -> dict[str, float]:
     return metrics
 
 
-def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, tax_multiplier: float, extra_cost_total: float, extra_material_cost: float, extra_labor_cost: float, extra_other_cost: float, permit_fees_cost: float) -> dict[str, dict[str, str]]:
+def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rakes: float, valleys: float, tax_multiplier: float, extra_cost_total: float, extra_material_cost: float = 0.0, extra_labor_cost: float = 0.0, extra_other_cost: float = 0.0, permit_fees_cost: float = 0.0) -> dict[str, dict[str, str]]:
     mats = {
         "HDZ": {"shingle": 41.33, "iw": 89.88, "start": 56.70, "cap": 61.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
         "UHDZ": {"shingle": 46.33, "iw": 89.88, "start": 56.70, "cap": 77.95, "vent": 18.00, "u_name": "Tigerpaw", "u_price": 159.60},
@@ -409,6 +409,10 @@ if uploaded_file is not None:
                     valleys=metrics["Valleys"],
                     tax_multiplier=tax_multiplier,
                     extra_cost_total=extra_cost_total,
+                    extra_material_cost=extra_material_cost,
+                    extra_labor_cost=extra_labor_cost,
+                    extra_other_cost=extra_other_cost,
+                    permit_fees_cost=permit_fees_cost,
                 )
 
                 for tier, data in estimates.items():
@@ -422,6 +426,10 @@ if uploaded_file is not None:
                         f"<div style='overflow-x:auto; font-family:monospace; font-size:12px; line-height:1.2; white-space:pre;'>{data['scenario_table']}</div>",
                         unsafe_allow_html=True,
                     )
+                    # Show a simple bar chart of Production (labor), Dumpster, and Materials components
+                    if not data.get("component_df", pd.DataFrame()).empty:
+                        st.write("**Component breakdown (Production labour vs Dumpster vs Materials)**")
+                        st.bar_chart(data["component_df"])
             except Exception as e:
                 st.error(f"CRITICAL ERROR: {e}")
             finally:
