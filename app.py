@@ -178,15 +178,36 @@ def parse_report(pdf_path: str) -> tuple[str, str]:
 
 
 def get_property_address(p1: str) -> str:
-    # Look for a common property address pattern including street, city, state, and zip
+    # First try labels and common oneline address formats.
     address_match = re.search(
-        r"([0-9]+\s+[\w\d .#\-/]+?)\s*[\n\r]+([A-Za-z .]+,\s*(?:PA|MD|NJ)\s+\d{5})",
+        r"Address[:\s]*([0-9]+[A-Za-z0-9 .#\-/]+?,\s*[A-Za-z .]+,\s*(?:PA|MD|NJ)\s+\d{5})",
         p1,
+        re.IGNORECASE,
+    )
+    if address_match:
+        return address_match.group(1).strip()
+
+    address_match = re.search(
+        r"([0-9]+[A-Za-z0-9 .#\-/]+?,\s*[A-Za-z .]+,\s*(?:PA|MD|NJ)\s+\d{5})",
+        p1,
+    )
+    if address_match:
+        return address_match.group(1).strip()
+
+    # Try multi-line street + city/state/zip formats.
+    address_match = re.search(
+        r"([0-9]+[A-Za-z0-9 .#\-/]+?)\s*[\n\r]+([A-Za-z .]+?,\s*(?:PA|MD|NJ)\s+\d{5})",
+        p1,
+        re.MULTILINE,
     )
     if address_match:
         return f"{address_match.group(1).strip()}, {address_match.group(2).strip()}"
 
-    address_match = re.search(r"([0-9]+\s+[\w\d .#\-/]+,\s*(?:PA|MD|NJ)\s+\d{5})", p1)
+    # Last fallback: any street address with state + zip on the same line.
+    address_match = re.search(
+        r"([0-9]+[A-Za-z0-9 .#\-/]+\s+(?:PA|MD|NJ)\s+\d{5})",
+        p1,
+    )
     if address_match:
         return address_match.group(1).strip()
 
