@@ -300,7 +300,7 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         if gp_m > 0:
             mt += f"{'Golden Pledge':<15} | {waste_sq:.0f} sq | $9.00 | ${gp_m:<10,.0f} | $0\n"
 
-        st_str = f"{ 'Scenario':<12 } | {'Margin %':<8} | {'Total Price':<12} | {'Prod Cost':<10} | {'Dumpster $':<10} | {'Material $':<12} | {'Profit $':<10} | {'Price/Sq':<10}\n"
+        st_str = f"{'Scenario':<12} | {'Margin %':<8} | {'Total Price':<12} | {'Prod Cost':<10} | {'Dumpster $':<10} | {'Material $':<12} | {'Profit $':<10} | {'Price/Sq':<10}\n"
         st_str += "-" * 115 + "\n"
         comp_frames = []
         for rate, name in [(105, "1L Walk"), (125, "1L Unwalk"), (125, "2L Walk"), (140, "2L Unwalk")]:
