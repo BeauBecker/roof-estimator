@@ -39,7 +39,14 @@ with st.expander("Optional add-on work and costs", expanded=True):
         step=1,
         disabled=not plywood_replacement,
     )
-    chimney_flasher = st.checkbox("Chimney Flashing — Labor $160.00")
+    chimney_flasher = st.checkbox("Chimney Flashing — Labor $160.00 per chimney")
+    chimney_flashing_count = st.number_input(
+        "Chimney flashing quantity",
+        min_value=0,
+        value=0,
+        step=1,
+        disabled=not chimney_flasher,
+    )
     smart_vent_replacement = st.checkbox("Smart Vent Replacement — Labor $4.00/ft, Material $4.20/ft")
     smart_vent_feet = st.number_input(
         "Smart vent length (ft)",
@@ -110,12 +117,22 @@ with st.expander("Optional add-on work and costs", expanded=True):
         disabled=not extra_other_enabled,
     ) if extra_other_enabled else 0.0
 
+    permit_fees_enabled = st.checkbox("Include permit fees")
+    permit_fees_cost = st.number_input(
+        "Permit fee cost ($)",
+        min_value=0.0,
+        value=0.0,
+        step=10.0,
+        format="%.2f",
+        disabled=not permit_fees_enabled,
+    ) if permit_fees_enabled else 0.0
+
 skylight_count = skylight_count if skylight_replacement else 0
 skylight_cost = skylight_count * 160.00
 step_flasher_cost = step_flashing_sections * 60.00 if step_flasher else 0.0
 plywood_labor_cost = plywood_sheets * 20.00 if plywood_replacement else 0.0
 plywood_material_cost = plywood_sheets * 12.50 if plywood_replacement else 0.0
-chimney_cost = 160.00 if chimney_flasher else 0.0
+chimney_cost = chimney_flashing_count * 160.00 if chimney_flasher else 0.0
 smart_vent_labor_cost = smart_vent_feet * 4.00 if smart_vent_replacement else 0.0
 smart_vent_material_cost = smart_vent_feet * 4.20 if smart_vent_replacement else 0.0
 
@@ -140,6 +157,7 @@ extra_cost_total = (
     + attic_fan_cost    + extra_material_cost
     + extra_labor_cost
     + extra_other_cost
+    + permit_fees_cost
 )
 
 
@@ -274,7 +292,7 @@ if uploaded_file is not None:
                 st.write(f"Replace Step Flashing: ${step_flasher_cost:.2f}")
                 st.write(f"Plywood Replacement Labor: ${plywood_labor_cost:.2f}")
                 st.write(f"Plywood Replacement Material: ${plywood_material_cost:.2f}")
-                st.write(f"Chimney Flashing: ${chimney_cost:.2f}")
+                st.write(f"Chimney Flashing: {chimney_flashing_count} unit(s) — ${chimney_cost:.2f}")
                 st.write(f"Smart Vent Labor: ${smart_vent_labor_cost:.2f}")
                 st.write(f"Smart Vent Material: ${smart_vent_material_cost:.2f}")
                 st.write(f"5k Gutters White: ${gutter_5k_white_cost:.2f}")
@@ -284,6 +302,7 @@ if uploaded_file is not None:
                 st.write(f"Custom extra material cost: ${extra_material_cost:.2f}")
                 st.write(f"Custom extra labor cost: ${extra_labor_cost:.2f}")
                 st.write(f"Custom other add-on cost: ${extra_other_cost:.2f}")
+                st.write(f"Permit fees: ${permit_fees_cost:.2f}")
                 st.write(f"**Total Add-on Cost:** ${extra_cost_total:.2f}")
                 st.write("---")
 
