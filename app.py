@@ -43,6 +43,35 @@ with st.expander("Optional add-on work and costs", expanded=True):
         disabled=not smart_vent_replacement,
     )
 
+    gutter_5k_white = st.checkbox("5k Gutters White — $6.00 per foot")
+    gutter_5k_white_length = st.number_input(
+        "5k Gutters White length (ft)",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        format="%.1f",
+        disabled=not gutter_5k_white,
+    )
+    gutter_6k_white = st.checkbox("6k Gutters White — $8.00 per foot")
+    gutter_6k_white_length = st.number_input(
+        "6k Gutters White length (ft)",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        format="%.1f",
+        disabled=not gutter_6k_white,
+    )
+    gutter_6k_colored = st.checkbox("6k Gutters Colored — $10.00 per foot")
+    gutter_6k_colored_length = st.number_input(
+        "6k Gutters Colored length (ft)",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        format="%.1f",
+        disabled=not gutter_6k_colored,
+    )
+    attic_fan_install = st.checkbox("Attic Fan Install — $120.00")
+
     st.markdown("**Custom extra costs**")
     extra_material_enabled = st.checkbox("Include extra materials")
     extra_material_cost = st.number_input(
@@ -82,6 +111,14 @@ chimney_cost = 160.00 if chimney_flasher else 0.0
 smart_vent_labor_cost = smart_vent_feet * 4.00 if smart_vent_replacement else 0.0
 smart_vent_material_cost = smart_vent_feet * 4.20 if smart_vent_replacement else 0.0
 
+gutter_5k_white_cost = gutter_5k_white_length * 6.00 if gutter_5k_white else 0.0
+        
+gutter_6k_white_cost = gutter_6k_white_length * 8.00 if gutter_6k_white else 0.0
+        
+gutter_6k_colored_cost = gutter_6k_colored_length * 10.00 if gutter_6k_colored else 0.0
+        
+attic_fan_cost = 120.00 if attic_fan_install else 0.0
+
 extra_cost_total = (
     skylight_cost
     + step_flasher_cost
@@ -89,8 +126,10 @@ extra_cost_total = (
     + plywood_material_cost
     + chimney_cost
     + smart_vent_labor_cost
-    + smart_vent_material_cost
-    + extra_material_cost
+    + smart_vent_material_cost    + gutter_5k_white_cost
+    + gutter_6k_white_cost
+    + gutter_6k_colored_cost
+    + attic_fan_cost    + extra_material_cost
     + extra_labor_cost
     + extra_other_cost
 )
@@ -230,6 +269,10 @@ if uploaded_file is not None:
                 st.write(f"Chimney Flashing: ${chimney_cost:.2f}")
                 st.write(f"Smart Vent Labor: ${smart_vent_labor_cost:.2f}")
                 st.write(f"Smart Vent Material: ${smart_vent_material_cost:.2f}")
+                st.write(f"5k Gutters White: ${gutter_5k_white_cost:.2f}")
+                st.write(f"6k Gutters White: ${gutter_6k_white_cost:.2f}")
+                st.write(f"6k Gutters Colored: ${gutter_6k_colored_cost:.2f}")
+                st.write(f"Attic Fan Install: ${attic_fan_cost:.2f}")
                 st.write(f"Custom extra material cost: ${extra_material_cost:.2f}")
                 st.write(f"Custom extra labor cost: ${extra_labor_cost:.2f}")
                 st.write(f"Custom other add-on cost: ${extra_other_cost:.2f}")
