@@ -177,6 +177,22 @@ def parse_report(pdf_path: str) -> tuple[str, str]:
     return p1, p7
 
 
+def get_property_address(p1: str) -> str:
+    # Look for a common property address pattern including street, city, state, and zip
+    address_match = re.search(
+        r"([0-9]+\s+[\w\d .#\-/]+?)\s*[\n\r]+([A-Za-z .]+,\s*(?:PA|MD|NJ)\s+\d{5})",
+        p1,
+    )
+    if address_match:
+        return f"{address_match.group(1).strip()}, {address_match.group(2).strip()}"
+
+    address_match = re.search(r"([0-9]+\s+[\w\d .#\-/]+,\s*(?:PA|MD|NJ)\s+\d{5})", p1)
+    if address_match:
+        return address_match.group(1).strip()
+
+    return "Unknown"
+
+
 def extract_metrics(p7: str) -> dict[str, float]:
     metrics = {
         "Eaves": get_p7_val("Eaves", p7),
@@ -275,6 +291,7 @@ if uploaded_file is not None:
 
                 p1, p7 = parse_report(tmp_file_path)
                 metrics = extract_metrics(p7)
+                property_address = get_property_address(p1)
 
                 state_match = re.search(r",\s*(PA|MD|NJ)\s+\d{5}", p1, re.IGNORECASE)
                 tax_multiplier = 1 + TAX_RATE if bool(state_match) else 1.0
@@ -283,6 +300,7 @@ if uploaded_file is not None:
                 st.write("---")
 
                 st.subheader("Property Summary")
+                st.write(f"**Property Address:** {property_address}")
                 st.write(f"**Waste Squares:** {metrics['Waste']:.2f}")
                 st.write(f"**Tax Applied:** {'Yes (6%)' if tax_multiplier > 1 else 'No'}")
                 st.write(f"**Geometry:** Eaves: {metrics['Eaves']} | Hips: {metrics['Hips']} | Ridges: {metrics['Ridges']} | Rakes: {metrics['Rakes']} | Valleys: {metrics['Valleys']}")
