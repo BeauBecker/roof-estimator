@@ -16,9 +16,13 @@ uploaded_file = st.file_uploader("Upload GAF PDF report", type="pdf")
 with st.expander("Optional add-on work and costs", expanded=True):
     st.markdown("**Task-based pricing options**")
     skylight_replacement = st.checkbox("Skylight Replacement — Labor $160.00 per skylight")
-    skylight_additional_2 = st.checkbox("Add second skylight", disabled=not skylight_replacement)
-    skylight_additional_3 = st.checkbox("Add third skylight", disabled=not skylight_replacement)
-    skylight_additional_4 = st.checkbox("Add fourth skylight", disabled=not skylight_replacement)
+    skylight_count = st.number_input(
+        "Skylight quantity",
+        min_value=0,
+        value=0,
+        step=1,
+        disabled=not skylight_replacement,
+    )
     step_flasher = st.checkbox("Replace Step Flashing — Labor $60.00 per section")
     step_flashing_sections = st.number_input(
         "Step flashing sections",
@@ -106,7 +110,7 @@ with st.expander("Optional add-on work and costs", expanded=True):
         disabled=not extra_other_enabled,
     ) if extra_other_enabled else 0.0
 
-skylight_count = 1 + int(skylight_additional_2) + int(skylight_additional_3) + int(skylight_additional_4) if skylight_replacement else 0
+skylight_count = skylight_count if skylight_replacement else 0
 skylight_cost = skylight_count * 160.00
 step_flasher_cost = step_flashing_sections * 60.00 if step_flasher else 0.0
 plywood_labor_cost = plywood_sheets * 20.00 if plywood_replacement else 0.0
