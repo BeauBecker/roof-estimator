@@ -4,7 +4,6 @@ import re
 import math
 import tempfile
 import os
-import pandas as pd
 
 st.set_page_config(page_title="Roof Estimator Pro", layout="wide")
 st.title("Roof Estimator Pro")
@@ -268,10 +267,11 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         drip_base = drip_pieces * 8.00
         u_rolls = math.ceil(waste_sq / 10)
         u_base = u_rolls * d["u_price"]
-        gp_base = (waste_sq * 9.00) if tier in ["HDZ", "UHDZ"] else 0
+        gp_base = (waste_sq * 9.00) if tier in ["HDZ", "UHDZ"] else 0.0
         boot_base = 3 * 10.20
         con_base = 150.00
 
+        # tax-applied material amounts
         s_m = s_base * tax_multiplier
         i_m = i_base * tax_multiplier
         st_m = st_base * tax_multiplier
@@ -279,11 +279,14 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         v_m = v_base * tax_multiplier
         drip_m = drip_base * tax_multiplier
         u_m = u_base * tax_multiplier
-        gp_m = gp_base * tax_multiplier
         boot_m = boot_base * tax_multiplier
         con_m = con_base * tax_multiplier
 
-        total_mat_base = s_base + i_base + st_base + c_base + v_base + drip_base + u_base + gp_base + boot_base + con_base
+        # warranty (Golden Pledge) is not taxable in PA/MD/NJ — keep separate
+        warranty_amt = gp_base
+
+        # exclude warranty from taxable material base
+        total_mat_base = s_base + i_base + st_base + c_base + v_base + drip_base + u_base + boot_base + con_base
         total_tax_amount = total_mat_base * TAX_RATE if tax_multiplier > 1 else 0.0
 
         mt = f"{'Item':<15} | {'Qty':<8} | {'Unit Price':<10} | {'Material $':<12} | {'Labor $':<8}\n"
@@ -297,40 +300,31 @@ def build_tables(waste_sq: float, eaves: float, hips: float, ridges: float, rake
         mt += f"{'Drip Edge':<15} | {drip_pieces} pc | $8.00 | ${drip_m:<10,.0f} | $0\n"
         mt += f"{'Pipe Boots':<15} | 3 pc | $10.20 | ${boot_m:<10,.0f} | $0\n"
         mt += f"{'Consumables':<15} | 1 lot | $150.00 | ${con_m:<10,.0f} | $0\n"
-        if gp_m > 0:
-            mt += f"{'Golden Pledge':<15} | {waste_sq:.0f} sq | $9.00 | ${gp_m:<10,.0f} | $0\n"
+        if warranty_amt > 0:
+            mt += f"{'Golden Pledge':<15} | {waste_sq:.0f} sq | $9.00 | ${warranty_amt:<10,.0f} | $0\n"
 
-        st_str = f"{'Scenario':<12} | {'Margin %':<8} | {'Total Price':<12} | {'Prod Cost':<10} | {'Dumpster $':<10} | {'Material $':<12} | {'Profit $':<10} | {'Price/Sq':<10}\n"
-        st_str += "-" * 115 + "\n"
-        comp_frames = []
+        st_str = f"{'Scenario':<12} | {'Margin %':<8} | {'Total Price':<12} | {'Production Cost':<15} | {'Labor $':<10} | {'Materials $':<12} | {'Dumpster $':<10} | {'Warranty $':<10} | {'Profit $':<10} | {'Price/Sq':<10}\n"
+        st_str += "-" * 135 + "\n"
         for rate, name in [(105, "1L Walk"), (125, "1L Unwalk"), (125, "2L Walk"), (140, "2L Unwalk")]:
             tear_off_sq = waste_sq * 2 if "2L" in name else waste_sq
             dump_cost = 286.00 + (tear_off_sq * 15.33)
             # separate production (labor), material, dumpster and extras
             production_labor = (waste_sq * rate) + extra_labor_cost
-            material_total = s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + gp_m + extra_material_cost
+            # material_total uses tax-applied material amounts (excludes warranty)
+            material_total = s_m + i_m + st_m + u_m + c_m + v_m + drip_m + boot_m + con_m + extra_material_cost
             other_extras = extra_other_cost + permit_fees_cost
-            p_cost = production_labor + dump_cost + material_total + other_extras
-            # Build a short dataframe for a simple component chart
-            comp_df = pd.DataFrame(
-                {
-                    "Production Labour": [production_labor],
-                    "Dumpster": [dump_cost],
-                    "Materials": [material_total],
-                },
-                index=[name],
-            )
-            comp_frames.append(comp_df)
+            # production_cost is total spent: labor + materials + dumpster + other_extras + warranty
+            production_cost = production_labor + material_total + dump_cost + other_extras + warranty_amt
+            p_cost = production_cost
             for m in [0.30, 0.33, 0.35, 0.37, 0.40, 0.45]:
                 total = p_cost / (1 - m)
-                st_str += f"{name:<12} | {m * 100:>7.0f}% | ${total:>10,.0f} | ${production_labor:>10,.0f} | ${dump_cost:>10,.0f} | ${material_total:>12,.0f} | ${total - p_cost:>10,.0f} | ${total / waste_sq:>10,.0f}\n"
-            st_str += "-" * 115 + "\n"
-        comp_all = pd.concat(comp_frames) if comp_frames else pd.DataFrame()
+                profit = total - p_cost
+                st_str += f"{name:<12} | {m * 100:>7.0f}% | ${total:>10,.0f} | ${production_cost:>13,.0f} | ${production_labor:>9,.0f} | ${material_total:>11,.0f} | ${dump_cost:>9,.0f} | ${warranty_amt:>9,.0f} | ${profit:>10,.0f} | ${total / waste_sq:>10,.0f}\n"
+            st_str += "-" * 135 + "\n"
         result[tier] = {
             "material_table": mt,
             "scenario_table": st_str,
             "tax_amount": total_tax_amount,
-            "component_df": comp_all,
         }
 
     return result
@@ -426,10 +420,7 @@ if uploaded_file is not None:
                         f"<div style='overflow-x:auto; font-family:monospace; font-size:12px; line-height:1.2; white-space:pre;'>{data['scenario_table']}</div>",
                         unsafe_allow_html=True,
                     )
-                    # Show a simple bar chart of Production (labor), Dumpster, and Materials components
-                    if not data.get("component_df", pd.DataFrame()).empty:
-                        st.write("**Component breakdown (Production labour vs Dumpster vs Materials)**")
-                        st.bar_chart(data["component_df"])
+                    # component chart removed per user request
             except Exception as e:
                 st.error(f"CRITICAL ERROR: {e}")
             finally:
